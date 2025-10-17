@@ -8,7 +8,6 @@ export default function Journey() {
   const [motionActive, setMotionActive] = useState(false);
 
   useEffect(() => {
-    // cargar audio base
     const bgSound = new Howl({
       src: ["/audio/base.mp3"],
       loop: true,
@@ -16,8 +15,7 @@ export default function Journey() {
     });
     setSound(bgSound);
 
-    // solicitar permisos de movimiento (para iOS)
-    if (typeof DeviceMotionEvent.requestPermission === "function") {
+    if (typeof DeviceMotionEvent?.requestPermission === "function") {
       DeviceMotionEvent.requestPermission().catch(console.error);
     }
   }, []);
@@ -56,7 +54,6 @@ export default function Journey() {
     };
   }, [sound, motionActive]);
 
-  // animación visual básica con GSAP
   useEffect(() => {
     gsap.to("#evolution", {
       scale: 1 + steps / 50,
