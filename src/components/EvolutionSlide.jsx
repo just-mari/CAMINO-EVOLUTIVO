@@ -1,54 +1,70 @@
 import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // Asegúrate de instalarlo: npm install framer-motion
+import { motion, AnimatePresence } from "framer-motion";
 
-export default function EvolutionSlide({ data, onNext }) {
+// Colores temáticos según la etapa
+const themes = {
+  1: { bg: "from-sky-500 to-cyan-600", accent: "bg-cyan-300" },
+  2: { bg: "from-green-600 to-emerald-700", accent: "bg-lime-300" },
+  3: { bg: "from-amber-600 to-orange-700", accent: "bg-orange-300" },
+  4: { bg: "from-purple-600 to-indigo-700", accent: "bg-fuchsia-300" },
+  5: { bg: "from-gray-700 to-white", accent: "bg-white" },
+};
+
+export default function EvolutionSlide({ data, onNext, level = 1 }) {
   const [steps, setSteps] = useState(0);
   const [evolving, setEvolving] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const audioRef = useRef(null);
 
-  // reproducir sonido de evolución
-  const playSound = (sound) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    audioRef.current = new Audio(`/sounds/${sound}`);
-    audioRef.current.volume = 0.7;
-    audioRef.current.play().catch((err) => console.warn("Error audio:", err));
-  };
+  const totalSteps = 30; // pasos necesarios por etapa
+  const theme = themes[level] || themes[1];
 
-  // detectar movimiento
+  // Reproducir sonido ambiental por etapa
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.pause();
+    audioRef.current = new Audio(`/sounds/${data.sound}`);
+    audioRef.current.loop = true;
+    audioRef.current.volume = 0.6;
+    audioRef.current.play().catch(() => console.warn("Audio bloqueado hasta interacción"));
+  }, [data.sound]);
+
+  // Detectar movimiento
   useEffect(() => {
     const handleMotion = (e) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc) return;
       const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
       if (magnitude > 13) {
-        setSteps((prev) => prev + 1);
+        setSteps((prev) => (prev < totalSteps ? prev + 1 : prev));
       }
     };
-
     window.addEventListener("devicemotion", handleMotion);
     return () => window.removeEventListener("devicemotion", handleMotion);
   }, []);
 
-  // cuando alcanza 30 pasos, evoluciona
+  // Evolucionar cuando alcanza el total
   useEffect(() => {
-    if (steps >= 30 && !evolving) {
+    if (steps >= totalSteps && !evolving) {
       setEvolving(true);
       setTransitioning(true);
-      playSound("unlock.mp3"); // sonido de transición
+
+      const unlock = new Audio("/sounds/unlock.mp3");
+      unlock.play().catch(() => {});
       setTimeout(() => {
         onNext();
         setSteps(0);
         setEvolving(false);
         setTransitioning(false);
-      }, 3000); // duración del efecto de transición
+      }, 3000);
     }
   }, [steps, evolving, onNext]);
 
+  const progress = Math.min((steps / totalSteps) * 100, 100);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen text-white relative overflow-hidden">
+    <div
+      className={`min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-br ${theme.bg} transition-all duration-700 relative overflow-hidden`}
+    >
       <AnimatePresence>
         {!transitioning && (
           <motion.div
@@ -57,31 +73,53 @@ export default function EvolutionSlide({ data, onNext }) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
             transition={{ duration: 1.2 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center px-6 text-center"
           >
             <h1 className="text-3xl font-bold mb-4">{data.title}</h1>
-            <p className="text-center max-w-md mb-8 opacity-90">{data.text}</p>
-            <div className="w-48 h-48 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full animate-pulse shadow-2xl" />
-            <p className="mt-6 text-sm opacity-80">Pasos: {steps}/30</p>
+            <p className="text-md mb-8 max-w-md opacity-90">{data.text}</p>
+
+            {/* Elemento simbólico evolutivo */}
+            <motion.div
+              animate={{
+                scale: [1, 1.1, 1],
+                rotate: [0, 5, -5, 0],
+              }}
+              transition={{ repeat: Infinity, duration: 3 }}
+              className={`w-48 h-48 ${theme.accent} rounded-full shadow-2xl`}
+            />
+
+            {/* Barra de progreso */}
+            <div className="w-64 bg-white/20 rounded-full h-3 mt-8 overflow-hidden shadow-md">
+              <motion.div
+                className="bg-white h-3"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+
+            <p className="mt-4 text-sm opacity-80">
+              {steps} / {totalSteps} pasos
+            </p>
           </motion.div>
         )}
 
         {transitioning && (
           <motion.div
-            key="evolution"
+            key="transition"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.5 }}
-            className="flex flex-col items-center justify-center absolute inset-0 bg-black"
+            transition={{ duration: 2 }}
+            className="absolute inset-0 flex flex-col items-center justify-center bg-black text-white"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 0.8] }}
               transition={{ duration: 2 }}
-              className="w-64 h-64 rounded-full bg-gradient-to-r from-teal-400 to-indigo-500"
+              className={`w-64 h-64 rounded-full bg-gradient-to-r ${theme.bg}`}
             />
-            <p className="mt-6 text-lg">🌱 Evolucionando...</p>
+            <p className="mt-6 text-lg animate-pulse">🌱 Evolucionando...</p>
           </motion.div>
         )}
       </AnimatePresence>

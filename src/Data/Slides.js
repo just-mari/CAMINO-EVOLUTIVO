@@ -1,27 +1,27 @@
 export const slides = [
   {
-    title: "El origen",
-    text: "Todo comienza en el silencio y la quietud, donde la energía aún no ha tomado forma.",
+    title: "1. El origen del movimiento",
+    text: "Todo comienza en el agua. La vibración es vida. Da tus primeros pasos.",
     sound: "level1.mp3",
   },
   {
-    title: "El agua",
-    text: "La materia se mueve, las moléculas comienzan a vibrar, la vida respira por primera vez.",
+    title: "2. La era vegetal",
+    text: "La luz y el aire guían el crecimiento. Siente cómo el cuerpo se expande.",
     sound: "level2.mp3",
   },
   {
-    title: "La tierra",
-    text: "Surgen formas más complejas, estructuras que sostienen y crecen.",
+    title: "3. La forma animal",
+    text: "La fuerza impulsa, el instinto guía. Cada paso deja huella.",
     sound: "level3.mp3",
   },
   {
-    title: "El ser",
-    text: "La conciencia florece, los pensamientos se conectan como raíces.",
+    title: "4. La conciencia humana",
+    text: "Pensar, sentir, crear. La evolución se vuelve arte.",
     sound: "level4.mp3",
   },
   {
-    title: "La expansión",
-    text: "La energía vuelve al origen, convertida en memoria y transformación.",
+    title: "5. Trascendencia",
+    text: "Más allá del cuerpo. El movimiento se convierte en vibración pura.",
     sound: "level5.mp3",
   },
 ];
