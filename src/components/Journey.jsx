@@ -18,7 +18,7 @@ export default function Journey() {
 
   useEffect(() => {
     // desbloquear audio con un sonido silencioso
-    const unlockSound = new Howl({ src: ["/sounds/unlock.mp3"], volume: 0 });
+    const unlockSound = new Howl({ src: ["/assets/unlock.mp3.mp3"], volume: 0 });
     unlockSound.play();
 
     const initSound = new Howl({
