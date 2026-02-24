@@ -1,27 +1,12 @@
 export const slides = [
   {
-    title: "1. El origen del movimiento",
-    text: "Todo comienza en el agua. La vibración es vida. Da tus primeros pasos.",
-    sound: "level1.mp3",
-  },
-  {
-    title: "2. La era vegetal",
-    text: "La luz y el aire guían el crecimiento. Siente cómo el cuerpo se expande.",
-    sound: "level2.mp3",
-  },
-  {
-    title: "3. La forma animal",
-    text: "La fuerza impulsa, el instinto guía. Cada paso deja huella.",
-    sound: "level3.mp3",
-  },
-  {
-    title: "4. La conciencia humana",
-    text: "Pensar, sentir, crear. La evolución se vuelve arte.",
-    sound: "level4.mp3",
-  },
-  {
-    title: "5. Trascendencia",
-    text: "Más allá del cuerpo. El movimiento se convierte en vibración pura.",
-    sound: "level5.mp3",
-  },
+    title: "Origen en el agua",
+    ambient: "/audio/level1.mp3",
+    narration: "/audio/level2.mp3",
+    text: [
+      "Todo comenzó en el agua.",
+      "El movimiento fue la primera forma de vida.",
+      "Avanzar era sobrevivir."
+    ]
+  }
 ];

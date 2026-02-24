@@ -12,9 +12,7 @@ function App() {
   return (
     <EvolutionSlide
       data={slides[current]}
-      onNext={() =>
-        setCurrent((prev) => (prev + 1 < slides.length ? prev + 1 : prev))
-      }
+
     />
   );
 }
