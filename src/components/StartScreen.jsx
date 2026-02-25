@@ -1,6 +1,41 @@
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { initAudio, playSFX, unlockAudioByUserGesture } from "../utils/soundManager";
 
 export default function StartScreen({ onStart }) {
+  const [isStarting, setIsStarting] = useState(false);
+
+  const handleStart = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
+
+    // 1. Intentar desbloquear audio con el gesto del usuario
+    const unlocked = await unlockAudioByUserGesture();
+    if (unlocked) {
+      playSFX("/unlock.mp3");
+    } else {
+      // Fallback: intentar con HTMLAudio (algunos navegadores permiten esto tras click)
+      try { new Audio('/unlock.mp3').play(); } catch (e) {}
+    }
+
+    // 2. Pedir permisos de sensores (Obligatorio en iOS)
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        const permission = await DeviceMotionEvent.requestPermission();
+        if (permission !== 'granted') {
+          alert("Necesitamos acceso a los sensores para la experiencia.");
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    // 3. Esperar 1.5 segundos antes de pasar al Nivel 1
+    setTimeout(() => {
+      onStart();
+    }, 1500);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white text-center overflow-hidden relative">
       {/* Fondo animado */}
@@ -21,7 +56,7 @@ export default function StartScreen({ onStart }) {
         Recorrido <span className="text-emerald-300">Evolutivo</span>
       </motion.h1>
 
-      {/* Elemento visual inspirado en tu SVG */}
+      {/* Elemento visual */}
       <motion.div
         className="w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-tr from-emerald-400 via-sky-400 to-amber-300 shadow-2xl flex items-center justify-center relative overflow-hidden"
         initial={{ scale: 0.8, opacity: 0 }}
@@ -43,14 +78,19 @@ export default function StartScreen({ onStart }) {
         </motion.p>
       </motion.div>
 
-      {/* Botón interactivo */}
+      {/* Botón interactivo modificado */}
       <motion.button
-        onClick={onStart}
-        className="mt-12 px-10 py-4 bg-emerald-400/20 border border-emerald-400/50 rounded-full text-emerald-200 font-medium hover:bg-emerald-400/30 backdrop-blur-md transition-all duration-300 z-10"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        onClick={handleStart}
+        disabled={isStarting}
+        className={`mt-12 px-10 py-4 border rounded-full font-medium backdrop-blur-md transition-all duration-300 z-10 
+          ${isStarting 
+            ? "bg-emerald-600/50 border-emerald-500 text-white cursor-wait" 
+            : "bg-emerald-400/20 border-emerald-400/50 text-emerald-200 hover:bg-emerald-400/30"
+          }`}
+        whileHover={!isStarting ? { scale: 1.05 } : {}}
+        whileTap={!isStarting ? { scale: 0.95 } : {}}
       >
-        Iniciar experiencia
+        {isStarting ? "Desbloqueando..." : "Iniciar experiencia"}
       </motion.button>
 
       {/* Pequeño brillo de fondo */}
