@@ -1,8 +1,21 @@
 import { initAudio } from "../utils/soundManager";
 
 export default function Intro({ onStart }) {
-  const handleStart = () => {
+  const handleStart = async () => {
     initAudio(); // crea el contexto de audio dentro del clic
+    
+    // Solicitar permisos de movimiento en iOS 13+
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        const permission = await DeviceMotionEvent.requestPermission();
+        if (permission === 'granted') {
+          console.log('Permiso de movimiento otorgado');
+        }
+      } catch (error) {
+        console.warn('Error solicitando permiso de movimiento:', error);
+      }
+    }
+    
     onStart();
   };
 
