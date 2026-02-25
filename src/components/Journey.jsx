@@ -3,11 +3,11 @@ import { Howl } from "howler";
 import { gsap } from "gsap";
 
 const EVOLUTION_STAGES = [
-  { name: "Célula", color: "from-sky-400 to-blue-500", audio: "/level1.mp3" },
-  { name: "Planta", color: "from-green-400 to-lime-500", audio: "/level2.mp3" },
-  { name: "Animal", color: "from-orange-400 to-rose-500", audio: "/level3.mp3" },
-  { name: "Humano", color: "from-purple-400 to-pink-500", audio: "/level4.mp3" },
-  { name: "Conciencia", color: "from-yellow-300 to-white", audio: "/level5.mp3" },
+  { name: "Célula", color: "from-sky-400 to-blue-500", audio: "/sounds/level1.mp3" },
+  { name: "Planta", color: "from-green-400 to-lime-500", audio: "/sounds/level2.mp3" },
+  { name: "Animal", color: "from-orange-400 to-rose-500", audio: "/sounds/level3.mp3" },
+  { name: "Humano", color: "from-purple-400 to-pink-500", audio: "/sounds/level4.mp3" },
+  { name: "Conciencia", color: "from-yellow-300 to-white", audio: "/sounds/level5.mp3" },
 ];
 
 export default function Journey() {
@@ -18,7 +18,7 @@ export default function Journey() {
 
   useEffect(() => {
     // desbloquear audio con un sonido silencioso
-    const unlockSound = new Howl({ src: ["/unlock.mp3"], volume: 0 });
+    const unlockSound = new Howl({ src: ["/assets/unlock.mp3.mp3"], volume: 0 });
     unlockSound.play();
 
     const initSound = new Howl({
