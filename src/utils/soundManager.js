@@ -4,6 +4,7 @@ let gainNode;
 let currentTrackUrl = "";
 let unlocked = false;
 let pendingQueue = [];
+let listenerAdded = false;
 
 export const initAudio = async () => {
   if (!audioCtx) {
@@ -69,6 +70,16 @@ const playTrackInternal = async (file) => {
 export const playTrack = async (file) => {
   const isUnlocked = await initAudio();
   if (!isUnlocked) {
+    if (!listenerAdded) {
+      listenerAdded = true;
+      const unlock = async () => {
+        await unlockAudioByUserGesture();
+        document.removeEventListener('touchstart', unlock);
+        document.removeEventListener('click', unlock);
+      };
+      document.addEventListener('touchstart', unlock, { once: true });
+      document.addEventListener('click', unlock, { once: true });
+    }
     pendingQueue.push({ type: "track", file });
     return;
   }
@@ -99,6 +110,16 @@ const playSFXInternal = async (file) => {
 export const playSFX = async (file) => {
   const isUnlocked = await initAudio();
   if (!isUnlocked) {
+    if (!listenerAdded) {
+      listenerAdded = true;
+      const unlock = async () => {
+        await unlockAudioByUserGesture();
+        document.removeEventListener('touchstart', unlock);
+        document.removeEventListener('click', unlock);
+      };
+      document.addEventListener('touchstart', unlock, { once: true });
+      document.addEventListener('click', unlock, { once: true });
+    }
     pendingQueue.push({ type: "sfx", file });
     return;
   }
