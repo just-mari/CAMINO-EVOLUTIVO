@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { playTrack, playSFX } from "../utils/soundManager";
 
-// Colores temáticos según la etapa
 const themes = {
   1: { bg: "from-sky-500 to-cyan-600", accent: "bg-cyan-300" },
   2: { bg: "from-green-600 to-emerald-700", accent: "bg-lime-300" },
@@ -14,32 +14,137 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
   const [steps, setSteps] = useState(0);
   const [evolving, setEvolving] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
-  const audioRef = useRef(null);
+  const [motionAvailable, setMotionAvailable] = useState(false);
+  const [hasStartedWalking, setHasStartedWalking] = useState(false);
 
   const totalSteps = 30; // pasos necesarios por etapa
   const theme = themes[level] || themes[1];
 
-  // Reproducir sonido ambiental por etapa
+  // Reproducir sonido de fondo: música base o level1 según estado
   useEffect(() => {
-    if (audioRef.current) audioRef.current.pause();
-    audioRef.current = new Audio(`/sounds/${data.sound}`);
-    audioRef.current.loop = true;
-    audioRef.current.volume = 0.6;
-    audioRef.current.play().catch(() => console.warn("Audio bloqueado hasta interacción"));
-  }, [data.sound]);
+    if (transitioning) {
+      console.log('[music] Transitioning - playing level2.mp3');
+      playTrack("/level2.mp3");
+    } else if (hasStartedWalking && steps > 0) {
+      console.log('[music] Walking - playing level1.mp3');
+      playTrack("/level1.mp3");
+    } else if (data && data.sound) {
+      console.log('[music] Base music - playing', data.sound);
+      playTrack(data.sound);
+    }
+  }, [transitioning, hasStartedWalking, steps, data.sound]);
 
-  // Detectar movimiento
+  // Detectar cuando comienza a haber pasos
   useEffect(() => {
-    const handleMotion = (e) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc) return;
-      const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
-      if (magnitude > 13) {
-        setSteps((prev) => (prev < totalSteps ? prev + 1 : prev));
+    if (steps === 1 && !hasStartedWalking) {
+      setHasStartedWalking(true);
+      console.log('[music] Starting walking - playing level1.mp3');
+    }
+  }, [steps, hasStartedWalking]);
+
+  // Detectar movimiento agresivo (batucazos del celular) - iOS y Android
+  useEffect(() => {
+    let motionHandler;
+    let motionTimeout;
+    let lastStepTime = 0;
+    const MIN_STEP_INTERVAL = 400;
+    const SHAKE_THRESHOLD = 10; // Ajustado para Android (Infinix)
+
+    const requestPermission = async () => {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        try {
+          const permission = await DeviceMotionEvent.requestPermission();
+          if (permission === 'granted') {
+            console.log('[motion] Permission granted');
+            return true;
+          } else {
+            console.log('[motion] Permission denied');
+            return false;
+          }
+        } catch (error) {
+          console.error('[motion] Error requesting permission:', error);
+          return false;
+        }
       }
+      return true; // No need for permission
     };
-    window.addEventListener("devicemotion", handleMotion);
-    return () => window.removeEventListener("devicemotion", handleMotion);
+
+    const startMotionListener = async () => {
+      const hasPermission = await requestPermission();
+      if (!hasPermission) {
+        console.log('[motion] No permission, using fallback');
+        const cleanup = addFallback();
+        motionTimeout = cleanup;
+        return;
+      }
+
+      motionHandler = (e) => {
+        const acc = e.accelerationIncludingGravity || e.acceleration;
+        if (!acc) return;
+        const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
+        console.log('[motion] magnitude:', magnitude, 'acc:', acc.x, acc.y, acc.z);
+        
+        if (magnitude > SHAKE_THRESHOLD && Date.now() - lastStepTime > MIN_STEP_INTERVAL) {
+          console.log('[motion] shake detected! magnitude:', magnitude);
+          lastStepTime = Date.now();
+          setSteps((prev) => (prev < totalSteps ? prev + 1 : prev));
+        }
+      };
+      window.addEventListener("devicemotion", motionHandler);
+      setMotionAvailable(true);
+      console.log('[motion] listener started');
+    };
+
+    const addFallback = () => {
+      console.log('[motion] Using fallback mode');
+      let lastClickTime = 0;
+      const handleClick = () => {
+        if (Date.now() - lastClickTime > MIN_STEP_INTERVAL) {
+          lastClickTime = Date.now();
+          setSteps((prev) => (prev < totalSteps ? prev + 5 : prev));
+        }
+      };
+      const handleKey = (e) => {
+        if (e.code === "Space" || e.key === " " || e.key === "Spacebar" || e.code === "ArrowUp") {
+          e.preventDefault();
+          if (Date.now() - lastClickTime > MIN_STEP_INTERVAL) {
+            lastClickTime = Date.now();
+            setSteps((prev) => (prev < totalSteps ? prev + 1 : prev));
+          }
+        }
+      };
+      window.addEventListener("click", handleClick);
+      window.addEventListener("keydown", handleKey);
+      setMotionAvailable(false);
+
+      return () => {
+        window.removeEventListener("click", handleClick);
+        window.removeEventListener("keydown", handleKey);
+      };
+    };
+
+    // Habilitar listener de motion directamente sin esperar
+    if ("ondevicemotion" in window || typeof DeviceMotionEvent !== "undefined") {
+      startMotionListener();
+      
+      // Timeout más delgado: si después de 1500ms no hay batucazos fuertes, usar fallback
+      motionTimeout = setTimeout(() => {
+        console.log('[motion] timeout - switching to fallback');
+        if (motionHandler) window.removeEventListener("devicemotion", motionHandler);
+        const cleanup = addFallback();
+        motionTimeout = cleanup;
+      }, 1500);
+    } else {
+      console.log('[motion] devicemotion API not available');
+      const cleanup = addFallback();
+      motionTimeout = cleanup;
+    }
+
+    return () => {
+      if (motionHandler) window.removeEventListener("devicemotion", motionHandler);
+      if (motionTimeout && typeof motionTimeout === "number") clearTimeout(motionTimeout);
+      if (motionTimeout && typeof motionTimeout === "function") motionTimeout();
+    };
   }, []);
 
   // Evolucionar cuando alcanza el total
@@ -48,23 +153,35 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
       setEvolving(true);
       setTransitioning(true);
 
-      const unlock = new Audio("/sounds/unlock.mp3");
-      unlock.play().catch(() => {});
+      // Reproducimos efecto de sonido al completar la etapa
+      playSFX("/unlock.mp3");
+
       setTimeout(() => {
         onNext();
         setSteps(0);
+        setHasStartedWalking(false);
         setEvolving(false);
         setTransitioning(false);
-      }, 3000);
+      }, 10000); // Aumentado a 5 segundos para escuchar el audio de evolución
     }
   }, [steps, evolving, onNext]);
 
   const progress = Math.min((steps / totalSteps) * 100, 100);
-
+//dsasd
   return (
-    <div
-      className={`min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-br ${theme.bg} transition-all duration-700 relative overflow-hidden`}
-    >
+    <div className={`min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-br ${theme.bg} transition-all duration-700 relative overflow-hidden`}>
+      {/* Debug / fallback UI for desktop */}
+      <div className="absolute top-4 right-4 z-30 text-sm text-white/80">
+        <div>Motion: {motionAvailable ? 'available' : 'fallback'}</div>
+        {!motionAvailable && (
+          <button
+            onClick={() => { console.log('[fallback] simular paso click'); setSteps((prev) => (prev < totalSteps ? prev + 1 : prev)); }}
+            className="mt-2 px-3 py-1 bg-white/20 rounded"
+          >
+            Simular paso
+          </button>
+        )}
+      </div>
       <AnimatePresence>
         {!transitioning && (
           <motion.div
