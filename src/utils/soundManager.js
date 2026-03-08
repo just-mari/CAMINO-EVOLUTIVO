@@ -80,7 +80,7 @@ const playTrackInternal = (file) => {
   currentTrack = new Howl({
     src: [file],
     loop: true,
-    volume: 0.5,
+    volume: 0.3,
     onload: () => {
       console.log("Pista cargada:", file);
     },
