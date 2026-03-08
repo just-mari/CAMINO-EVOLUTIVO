@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { playTrack, playSFX } from "../utils/soundManager";
+import { playTrack, playSFX, stopAllTracks } from "../utils/soundManager";
 
 const themes = {
   1: { bg: "from-sky-500 to-cyan-600", accent: "bg-cyan-300" },
@@ -23,8 +23,11 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
   // Reproducir sonido de fondo: música base o level1 según estado
   useEffect(() => {
     if (transitioning) {
-      console.log('[music] Transitioning - playing level2.mp3');
-      playTrack("/level2.mp3");
+      console.log('[music] Transitioning - stopping all tracks and playing level2.mp3');
+      stopAllTracks(); // Detener todos los sonidos
+      setTimeout(() => {
+        playTrack("/level2.mp3");
+      }, 100); // Pequeño delay para asegurar que se detiene primero
     } else if (hasStartedWalking && steps > 0) {
       console.log('[music] Walking - playing level1.mp3');
       playTrack("/level1.mp3");
@@ -127,17 +130,16 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
     if ("ondevicemotion" in window || typeof DeviceMotionEvent !== "undefined") {
       startMotionListener();
       
-      // Timeout más delgado: si después de 1500ms no hay batucazos fuertes, usar fallback
+      // Timeout más largo: si después de 3000ms no hay batucazos, usar fallback pero MANTENER el motion listener activo
       motionTimeout = setTimeout(() => {
-        console.log('[motion] timeout - switching to fallback');
-        if (motionHandler) window.removeEventListener("devicemotion", motionHandler);
-        const cleanup = addFallback();
-        motionTimeout = cleanup;
-      }, 1500);
+        console.log('[motion] timeout - pero manteniendo motion listener activo');
+        // No removemos el motion handler, solo marcamos que se puede usar fallback
+        setMotionAvailable(false); // Mostrar botón de fallback
+      }, 3000);
     } else {
       console.log('[motion] devicemotion API not available');
-      const cleanup = addFallback();
-      motionTimeout = cleanup;
+      // Incluso sin API, permitir el botón de simulación
+      setMotionAvailable(false);
     }
 
     return () => {
@@ -162,7 +164,7 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
         setHasStartedWalking(false);
         setEvolving(false);
         setTransitioning(false);
-      }, 100000); // Aumentado a 5 segundos para escuchar el audio de evolución
+      }, 20000); // Aumentado a 5 segundos para escuchar el audio de evolución
     }
   }, [steps, evolving, onNext]);
 
@@ -173,14 +175,12 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
       {/* Debug / fallback UI for desktop */}
       <div className="absolute top-4 right-4 z-30 text-sm text-white/80">
         <div>Motion: {motionAvailable ? 'available' : 'fallback'}</div>
-        {!motionAvailable && (
-          <button
-            onClick={() => { console.log('[fallback] simular paso click'); setSteps((prev) => (prev < totalSteps ? prev + 1 : prev)); }}
-            className="mt-2 px-3 py-1 bg-white/20 rounded"
-          >
-            Simular paso
-          </button>
-        )}
+        <button
+          onClick={() => { console.log('[button] simular paso click'); setSteps((prev) => (prev < totalSteps ? prev + 1 : prev)); }}
+          className="mt-2 px-3 py-1 bg-white/20 rounded hover:bg-white/40 transition-colors"
+        >
+          Simular paso
+        </button>
       </div>
       <AnimatePresence>
         {!transitioning && (

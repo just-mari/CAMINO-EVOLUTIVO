@@ -8,6 +8,15 @@ export const initAudio = async () => {
   return true;
 };
 
+export const stopAllTracks = () => {
+  if (currentTrack) {
+    currentTrack.stop();
+    currentTrack = null;
+    currentTrackUrl = "";
+    console.log('[audio] All tracks stopped');
+  }
+};
+
 const playTrackInternal = (file) => {
   // Si la canción ya está sonando, no la cortamos
   if (currentTrackUrl === file && currentTrack && !currentTrack.playing()) {
