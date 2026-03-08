@@ -25,8 +25,14 @@ const playTrackInternal = (file) => {
     src: [file],
     loop: true,
     volume: 0.5,
+    onload: () => {
+      console.log("Pista cargada:", file);
+    },
     onloaderror: (id, error) => {
       console.error("Error cargando la pista:", error);
+    },
+    onplay: () => {
+      console.log("Reproduciendo pista:", file);
     },
     onplayerror: (id, error) => {
       console.error("Error reproduciendo la pista:", error);
