@@ -23,9 +23,8 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
   // Reproducir sonido de fondo: música base o level1 según estado
   useEffect(() => {
     if (transitioning) {
-      console.log('[music] Transitioning - stopping all tracks and playing ONLY level2.mp3');
-      stopAllTracks(); // Detener TODO
-      playTrack("/level2.mp3"); // Reproducir SOLO level2
+      console.log('[music] Transitioning - fading out current track and playing ONLY level2.mp3');
+      playTrack("/level2.mp3");
     } else if (hasStartedWalking && steps > 0) {
       console.log('[music] Walking - playing level1.mp3');
       playTrack("/level1.mp3");

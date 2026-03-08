@@ -1,6 +1,7 @@
 import { Howl } from 'howler';
 
 let currentTrack;
+let previousTrack; // Track anterior para transiciones suaves
 let currentTrackUrl = "";
 
 export const initAudio = async () => {
@@ -12,31 +13,47 @@ export const stopAllTracks = () => {
   console.log('[audio] Stopping all tracks, current:', currentTrackUrl);
   if (currentTrack) {
     try {
-      currentTrack.unload(); // Unload completamente para asegurar que se detiene
+      currentTrack.unload();
     } catch (e) {}
     currentTrack = null;
+  }
+  if (previousTrack) {
+    try {
+      previousTrack.unload();
+    } catch (e) {}
+    previousTrack = null;
   }
   currentTrackUrl = "";
   console.log('[audio] All tracks stopped and unloaded');
 };
 
+export const muteCurrentTrack = () => {
+  if (currentTrack) {
+    currentTrack.volume(0);
+    console.log('[audio] Current track muted');
+  }
+};
+
 const playTrackInternal = (file) => {
   // Si la canción ya está sonando, no la cortamos
-  if (currentTrackUrl === file && currentTrack && !currentTrack.playing()) {
-    currentTrack.play();
+  if (currentTrackUrl === file && currentTrack && currentTrack.playing()) {
+    console.log('[audio] Track already playing: ', file);
     return;
   }
 
-  // Detener la canción anterior
+  // Guardar el track anterior para transición suave
   if (currentTrack) {
-    currentTrack.stop();
+    // Reducir volumen del track anterior a 0 gradualmente
+    currentTrack.fade(currentTrack.volume(), 0, 300);
+    previousTrack = currentTrack;
+    console.log('[audio] Fading out previous track');
   }
 
   currentTrackUrl = file;
   currentTrack = new Howl({
     src: [file],
     loop: true,
-    volume: 0.5,
+    volume: 0,
     onload: () => {
       console.log("Pista cargada:", file);
     },
@@ -45,6 +62,8 @@ const playTrackInternal = (file) => {
     },
     onplay: () => {
       console.log("Reproduciendo pista:", file);
+      // Fade in suave
+      currentTrack.fade(0, 0.5, 300);
     },
     onplayerror: (id, error) => {
       console.error("Error reproduciendo la pista:", error);
