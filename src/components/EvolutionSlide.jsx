@@ -23,11 +23,9 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
   // Reproducir sonido de fondo: música base o level1 según estado
   useEffect(() => {
     if (transitioning) {
-      console.log('[music] Transitioning - stopping all tracks and playing level2.mp3');
-      stopAllTracks(); // Detener todos los sonidos
-      setTimeout(() => {
-        playTrack("/level2.mp3");
-      }, 100); // Pequeño delay para asegurar que se detiene primero
+      console.log('[music] Transitioning - stopping all tracks and playing ONLY level2.mp3');
+      stopAllTracks(); // Detener TODO
+      playTrack("/level2.mp3"); // Reproducir SOLO level2
     } else if (hasStartedWalking && steps > 0) {
       console.log('[music] Walking - playing level1.mp3');
       playTrack("/level1.mp3");
@@ -75,9 +73,8 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
     const startMotionListener = async () => {
       const hasPermission = await requestPermission();
       if (!hasPermission) {
-        console.log('[motion] No permission, using fallback');
-        const cleanup = addFallback();
-        motionTimeout = cleanup;
+        console.log('[motion] No permission for devicemotion');
+        setMotionAvailable(false);
         return;
       }
 
@@ -98,54 +95,21 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
       console.log('[motion] listener started');
     };
 
-    const addFallback = () => {
-      console.log('[motion] Using fallback mode');
-      let lastClickTime = 0;
-      const handleClick = () => {
-        if (Date.now() - lastClickTime > MIN_STEP_INTERVAL) {
-          lastClickTime = Date.now();
-          setSteps((prev) => (prev < totalSteps ? prev + 5 : prev));
-        }
-      };
-      const handleKey = (e) => {
-        if (e.code === "Space" || e.key === " " || e.key === "Spacebar" || e.code === "ArrowUp") {
-          e.preventDefault();
-          if (Date.now() - lastClickTime > MIN_STEP_INTERVAL) {
-            lastClickTime = Date.now();
-            setSteps((prev) => (prev < totalSteps ? prev + 1 : prev));
-          }
-        }
-      };
-      window.addEventListener("click", handleClick);
-      window.addEventListener("keydown", handleKey);
-      setMotionAvailable(false);
-
-      return () => {
-        window.removeEventListener("click", handleClick);
-        window.removeEventListener("keydown", handleKey);
-      };
-    };
-
-    // Habilitar listener de motion directamente sin esperar
+    // Habilitar listener de motion directamente
     if ("ondevicemotion" in window || typeof DeviceMotionEvent !== "undefined") {
       startMotionListener();
       
-      // Timeout más largo: si después de 3000ms no hay batucazos, usar fallback pero MANTENER el motion listener activo
+      // Timeout para indicar si el batuqueo está funcionando
       motionTimeout = setTimeout(() => {
-        console.log('[motion] timeout - pero manteniendo motion listener activo');
-        // No removemos el motion handler, solo marcamos que se puede usar fallback
-        setMotionAvailable(false); // Mostrar botón de fallback
+        console.log('[motion] Timeout: batuqueo puede no estar disponible o no se detectó movimiento');
       }, 3000);
     } else {
       console.log('[motion] devicemotion API not available');
-      // Incluso sin API, permitir el botón de simulación
-      setMotionAvailable(false);
     }
 
     return () => {
       if (motionHandler) window.removeEventListener("devicemotion", motionHandler);
-      if (motionTimeout && typeof motionTimeout === "number") clearTimeout(motionTimeout);
-      if (motionTimeout && typeof motionTimeout === "function") motionTimeout();
+      if (motionTimeout) clearTimeout(motionTimeout);
     };
   }, []);
 

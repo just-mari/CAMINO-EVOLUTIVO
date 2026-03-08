@@ -9,12 +9,15 @@ export const initAudio = async () => {
 };
 
 export const stopAllTracks = () => {
+  console.log('[audio] Stopping all tracks, current:', currentTrackUrl);
   if (currentTrack) {
-    currentTrack.stop();
+    try {
+      currentTrack.unload(); // Unload completamente para asegurar que se detiene
+    } catch (e) {}
     currentTrack = null;
-    currentTrackUrl = "";
-    console.log('[audio] All tracks stopped');
   }
+  currentTrackUrl = "";
+  console.log('[audio] All tracks stopped and unloaded');
 };
 
 const playTrackInternal = (file) => {
