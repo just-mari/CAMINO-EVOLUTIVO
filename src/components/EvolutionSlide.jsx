@@ -162,12 +162,12 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
         setHasStartedWalking(false);
         setEvolving(false);
         setTransitioning(false);
-      }, 10000); // Aumentado a 5 segundos para escuchar el audio de evolución
+      }, 100000); // Aumentado a 5 segundos para escuchar el audio de evolución
     }
   }, [steps, evolving, onNext]);
 
   const progress = Math.min((steps / totalSteps) * 100, 100);
-//dsasd
+
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center text-white bg-gradient-to-br ${theme.bg} transition-all duration-700 relative overflow-hidden`}>
       {/* Debug / fallback UI for desktop */}
