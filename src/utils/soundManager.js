@@ -13,18 +13,38 @@ export const stopAllTracks = () => {
   console.log('[audio] Stopping all tracks, current:', currentTrackUrl);
   if (currentTrack) {
     try {
+      currentTrack.stop();
       currentTrack.unload();
-    } catch (e) {}
+    } catch (e) {
+      console.error('[audio] Error stopping current track:', e);
+    }
     currentTrack = null;
   }
   if (previousTrack) {
     try {
+      previousTrack.stop();
       previousTrack.unload();
-    } catch (e) {}
+    } catch (e) {
+      console.error('[audio] Error stopping previous track:', e);
+    }
     previousTrack = null;
   }
   currentTrackUrl = "";
-  console.log('[audio] All tracks stopped and unloaded');
+  console.log('[audio] All tracks stopped and unloaded completely');
+};
+
+export const forceStopCurrentTrack = () => {
+  console.log('[audio] Force stopping current track IMMEDIATELY:', currentTrackUrl);
+  if (currentTrack) {
+    try {
+      currentTrack.stop();
+      currentTrack.unload();
+    } catch (e) {
+      console.error('[audio] Error force stopping track:', e);
+    }
+    currentTrack = null;
+    currentTrackUrl = "";
+  }
 };
 
 export const muteCurrentTrack = () => {
@@ -41,19 +61,26 @@ const playTrackInternal = (file) => {
     return;
   }
 
-  // Guardar el track anterior para transición suave
+  // Detener completamente el track anterior (sin fade)
   if (currentTrack) {
-    // Reducir volumen del track anterior a 0 gradualmente
-    currentTrack.fade(currentTrack.volume(), 0, 300);
-    previousTrack = currentTrack;
-    console.log('[audio] Fading out previous track');
+    try {
+      currentTrack.stop();
+      currentTrack.unload();
+    } catch (e) {}
+  }
+  if (previousTrack) {
+    try {
+      previousTrack.stop();
+      previousTrack.unload();
+    } catch (e) {}
+    previousTrack = null;
   }
 
   currentTrackUrl = file;
   currentTrack = new Howl({
     src: [file],
     loop: true,
-    volume: 0,
+    volume: 0.5,
     onload: () => {
       console.log("Pista cargada:", file);
     },
@@ -62,8 +89,6 @@ const playTrackInternal = (file) => {
     },
     onplay: () => {
       console.log("Reproduciendo pista:", file);
-      // Fade in suave
-      currentTrack.fade(0, 0.5, 300);
     },
     onplayerror: (id, error) => {
       console.error("Error reproduciendo la pista:", error);

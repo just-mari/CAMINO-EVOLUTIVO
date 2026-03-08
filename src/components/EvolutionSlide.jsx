@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { playTrack, playSFX, stopAllTracks } from "../utils/soundManager";
+import { playTrack, playSFX, stopAllTracks, forceStopCurrentTrack } from "../utils/soundManager";
 
 const themes = {
   1: { bg: "from-sky-500 to-cyan-600", accent: "bg-cyan-300" },
@@ -23,7 +23,8 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
   // Reproducir sonido de fondo: música base o level1 según estado
   useEffect(() => {
     if (transitioning) {
-      console.log('[music] Transitioning - fading out current track and playing ONLY level2.mp3');
+      console.log('[music] Transitioning - FORCE STOPPING all tracks and playing ONLY level2.mp3');
+      forceStopCurrentTrack(); // Forzar stop inmediato
       playTrack("/level2.mp3");
     } else if (hasStartedWalking && steps > 0) {
       console.log('[music] Walking - playing level1.mp3');
