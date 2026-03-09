@@ -75,8 +75,10 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
     let motionHandler;
     let motionTimeout;
     let lastStepTime = 0;
+    let lastMagnitude = 0;
     const MIN_STEP_INTERVAL = 400;
-    const SHAKE_THRESHOLD = 10; // Ajustado para Android (Infinix)
+    const SHAKE_THRESHOLD = 12; // un poco más alto para evitar ruido
+    const DELTA_THRESHOLD = 4; // incremento mínimo para considerar un paso
 
     const requestPermission = async () => {
       if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -111,11 +113,18 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
         const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
         console.log('[motion] magnitude:', magnitude, 'acc:', acc.x, acc.y, acc.z);
         
-        if (magnitude > SHAKE_THRESHOLD && Date.now() - lastStepTime > MIN_STEP_INTERVAL) {
-          console.log('[motion] shake detected! magnitude:', magnitude);
+        // solo contamos un paso si hay un pico claro sobre el umbral
+        if (
+          magnitude > SHAKE_THRESHOLD &&
+          magnitude - lastMagnitude > DELTA_THRESHOLD &&
+          Date.now() - lastStepTime > MIN_STEP_INTERVAL
+        ) {
+          console.log('[motion] valid step detected! magnitude:', magnitude);
           lastStepTime = Date.now();
           setSteps((prev) => (prev < totalSteps ? prev + 1 : prev));
         }
+
+        lastMagnitude = magnitude;
       };
       window.addEventListener("devicemotion", motionHandler);
       setMotionAvailable(true);
