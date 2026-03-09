@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { playTrack, playSFX, stopAllTracks, forceStopCurrentTrack } from "../utils/soundManager";
 
@@ -15,33 +15,60 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
   const [evolving, setEvolving] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [motionAvailable, setMotionAvailable] = useState(false);
-  const [hasStartedWalking, setHasStartedWalking] = useState(false);
+  // ref for tracking previous steps value and idle timer
+  const prevStepsRef = useRef(0);
+  const idleTimerRef = useRef(null);
 
   const totalSteps = 30; // pasos necesarios por etapa
   const theme = themes[level] || themes[1];
 
-  // Reproducir sonido de fondo: música base o level1 según estado
+  // Audio management: play background sounds depending on state.
+  // - level1 only when the step count actually increases
+  // - return to base music after a short inactivity period
   useEffect(() => {
+    // handle transition state first (forces level2)
     if (transitioning) {
       console.log('[music] Transitioning - FORCE STOPPING all tracks and playing ONLY level2.mp3');
       forceStopCurrentTrack(); // Forzar stop inmediato
       playTrack("/level2.mp3");
-    } else if (hasStartedWalking && steps > 0) {
-      console.log('[music] Walking - playing level1.mp3');
-      playTrack("/level1.mp3");
-    } else if (data && data.sound) {
-      console.log('[music] Base music - playing', data.sound);
-      playTrack(data.sound);
+      return;
     }
-  }, [transitioning, hasStartedWalking, steps, data.sound]);
 
-  // Detectar cuando comienza a haber pasos
-  useEffect(() => {
-    if (steps === 1 && !hasStartedWalking) {
-      setHasStartedWalking(true);
-      console.log('[music] Starting walking - playing level1.mp3');
+    // If steps increased since last render, start walking track
+    if (steps > prevStepsRef.current) {
+      console.log('[music] Step increment detected - playing level1.mp3');
+      playTrack("/level1.mp3");
+
+      // reset/clear any existing idle timer
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+
+      // after a brief period without new steps, return to base music
+      idleTimerRef.current = setTimeout(() => {
+        console.log('[music] No new steps detected - stopping walking audio and resuming base music');
+        stopAllTracks();
+        if (data && data.sound) {
+          playTrack(data.sound);
+        }
+      }, 1000); // 1 second of inactivity
+    } else if (steps === 0) {
+      // no walking at all, ensure base music is playing
+      if (data && data.sound) {
+        console.log('[music] Base music - playing', data.sound);
+        playTrack(data.sound);
+      }
     }
-  }, [steps, hasStartedWalking]);
+
+    prevStepsRef.current = steps;
+
+    // cleanup on unmount
+    return () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+      }
+    };
+  }, [transitioning, steps, data.sound]);
 
   // Detectar movimiento agresivo (batucazos del celular) - iOS y Android
   useEffect(() => {
@@ -125,7 +152,7 @@ export default function EvolutionSlide({ data, onNext, level = 1 }) {
       setTimeout(() => {
         onNext();
         setSteps(0);
-        setHasStartedWalking(false);
+        // reset any walking audio state, base music will resume via effect on steps
         setEvolving(false);
         setTransitioning(false);
       }, 20000); // Aumentado a 5 segundos para escuchar el audio de evolución
